@@ -3,8 +3,28 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const MoveHistory = require("../models/MoveHistory");
+const { authMiddleware } = require("../middleware/roleMiddleware");
 
 const router = express.Router();
+
+// Get current user
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate("warehouse", "name location");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json({
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      warehouse: user.warehouse,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
 
 // Signup
 router.post("/signup", async (req, res) => {

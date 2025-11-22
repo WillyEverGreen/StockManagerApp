@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import {
   View,
   Text,
@@ -11,14 +11,23 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import { colors, globalStyles } from "../styles/globalStyles";
 import * as api from "../services/api";
+import { AuthContext } from "../context/AuthContext";
 
 const TransactionsScreen = ({ navigation }) => {
+  const { user } = useContext(AuthContext);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("all"); // 'all', 'in', 'out'
 
   const loadTransactions = async () => {
+    // Check if employee has warehouse assignment
+    if (user?.role === "worker" && !user?.warehouse) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
       const response = await api.getTransactions(100);
       setTransactions(response.data);
@@ -33,7 +42,7 @@ const TransactionsScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       loadTransactions();
-    }, [])
+    }, [user])
   );
 
   const onRefresh = () => {
@@ -89,6 +98,19 @@ const TransactionsScreen = ({ navigation }) => {
     return (
       <View style={globalStyles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  // Show empty state for unassigned employees
+  if (user?.role === "worker" && !user?.warehouse) {
+    return (
+      <View style={globalStyles.center}>
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>⚠️</Text>
+        <Text style={globalStyles.subtitle}>No Warehouse Assigned</Text>
+        <Text style={[globalStyles.textMuted, { textAlign: "center", marginTop: 8, paddingHorizontal: 32 }]}>
+          You cannot view transactions until you are assigned to a warehouse.
+        </Text>
       </View>
     );
   }

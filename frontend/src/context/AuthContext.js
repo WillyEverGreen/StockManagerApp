@@ -1,8 +1,12 @@
 import React, { createContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import * as api from "../services/api";
+import { BASE_URL } from "../config";
 
 export const AuthContext = createContext();
+
+const API_URL = BASE_URL;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -49,6 +53,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshUser = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) return;
+
+      const headers = { Authorization: `Bearer ${token}` };
+      const response = await axios.get(`${API_URL}/auth/me`, { headers });
+      const user = response.data;
+
+      await AsyncStorage.setItem("user", JSON.stringify(user));
+      setUser(user);
+      return user;
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+      return null;
+    }
+  };
+
+  const updateUser = async (newUser) => {
+    await AsyncStorage.setItem("user", JSON.stringify(newUser));
+    setUser(newUser);
+  };
+
   const signUp = async (name, email, password) => {
     try {
       const response = await api.signup({ name, email, password });
@@ -85,6 +112,8 @@ export const AuthProvider = ({ children }) => {
         signIn,
         signUp,
         signOut,
+        refreshUser,
+        updateUser,
       }}
     >
       {children}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import {
   View,
   Text,
@@ -17,8 +17,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import { colors, globalStyles } from "../styles/globalStyles";
 import * as api from "../services/api";
 import { isLowStock, calculateStockPrediction } from "../utils/prediction";
+import { AuthContext } from "../context/AuthContext";
 
 const ProductsScreen = ({ navigation }) => {
+  const { user } = useContext(AuthContext);
   const [permission, requestPermission] = useCameraPermissions();
   const [isScanning, setIsScanning] = useState(false);
   const [products, setProducts] = useState([]);
@@ -28,6 +30,13 @@ const ProductsScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const loadProducts = async () => {
+    // Check if employee has warehouse assignment
+    if (user?.role === "worker" && !user?.warehouse) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
       const response = await api.getProducts(searchQuery);
       setProducts(response.data);
@@ -44,7 +53,7 @@ const ProductsScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       loadProducts();
-    }, [])
+    }, [user])
   );
 
   const onRefresh = () => {
@@ -126,6 +135,19 @@ const ProductsScreen = ({ navigation }) => {
     return (
       <View style={globalStyles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  // Show empty state for unassigned employees
+  if (user?.role === "worker" && !user?.warehouse) {
+    return (
+      <View style={globalStyles.center}>
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>⚠️</Text>
+        <Text style={globalStyles.subtitle}>No Warehouse Assigned</Text>
+        <Text style={[globalStyles.textMuted, { textAlign: "center", marginTop: 8, paddingHorizontal: 32 }]}>
+          You cannot view inventory until you are assigned to a warehouse.
+        </Text>
       </View>
     );
   }

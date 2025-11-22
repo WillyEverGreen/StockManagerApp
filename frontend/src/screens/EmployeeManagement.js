@@ -67,6 +67,15 @@ const EmployeeManagement = ({ navigation }) => {
             setSelectedWarehouse("");
             loadData();
         } catch (error) {
+            console.error("Assign Employee Error:", error);
+            if (error.response) {
+                console.error("Error Data:", error.response.data);
+                console.error("Error Status:", error.response.status);
+            } else if (error.request) {
+                console.error("Error Request:", error.request);
+            } else {
+                console.error("Error Message:", error.message);
+            }
             Alert.alert("Error", error.response?.data?.message || "Failed to assign employee");
         }
     };

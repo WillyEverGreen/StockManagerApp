@@ -14,10 +14,12 @@ import { colors } from "../styles/globalStyles";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "http://192.168.137.1:5000";
+import { BASE_URL } from "../config";
+
+const API_URL = BASE_URL;
 
 const EmployeeDashboard = ({ navigation }) => {
-    const { user, signOut } = useContext(AuthContext);
+    const { user, signOut, refreshUser } = useContext(AuthContext);
     const [warehouse, setWarehouse] = useState(null);
     const [stats, setStats] = useState({
         totalProducts: 0,
@@ -28,29 +30,40 @@ const EmployeeDashboard = ({ navigation }) => {
 
     useEffect(() => {
         loadDashboardData();
-    }, []);
+    }, [user]); // Reload when user updates
 
     const loadDashboardData = async () => {
         try {
+            let currentUser = user;
+
+            // If user data is stale or missing warehouse, refresh it
+            if (!currentUser?.warehouse) {
+                console.log("Refreshing user data...");
+                const refreshedUser = await refreshUser();
+                if (refreshedUser) {
+                    currentUser = refreshedUser;
+                    console.log("User refreshed:", currentUser.email, "Warehouse:", currentUser.warehouse);
+                }
+            }
+
             const token = await AsyncStorage.getItem("token");
             const headers = { Authorization: `Bearer ${token}` };
 
             // Check if employee has warehouse assignment
-            if (!user?.warehouse) {
-                Alert.alert(
-                    "No Warehouse Assigned",
-                    "You have not been assigned to a warehouse yet. Please contact your manager."
-                );
+            if (!currentUser?.warehouse) {
+                console.log("No warehouse assigned for user:", currentUser?.email);
                 return;
             }
 
+            console.log("Fetching inventory for warehouse:", currentUser.warehouse._id);
+
             // Load warehouse inventory
             const response = await axios.get(
-                `${API_URL}/warehouses/${user.warehouse._id}/inventory`,
+                `${API_URL}/warehouses/${currentUser.warehouse._id}/inventory`,
                 { headers }
             );
 
-            setWarehouse(user.warehouse);
+            setWarehouse(currentUser.warehouse);
             setStats({
                 totalProducts: response.data.stats.totalItems,
                 lowStockItems: response.data.stats.lowStockItems,
@@ -58,12 +71,27 @@ const EmployeeDashboard = ({ navigation }) => {
             });
         } catch (error) {
             console.error("Failed to load dashboard data:", error);
-            Alert.alert("Error", "Failed to load dashboard data");
+            if (error.response) {
+                console.error("Error Status:", error.response.status);
+                console.error("Error Data:", error.response.data);
+            }
         }
     };
 
     const onRefresh = async () => {
         setRefreshing(true);
+        await refreshUser(); // Refresh user data first
+        // We don't need to call loadDashboardData here because useEffect will trigger it when user updates
+        // BUT to be safe and ensure the refresh spinner stops only after data load, we can call it.
+        // However, since loadDashboardData is async and depends on user state, 
+        // let's just wait a bit or rely on the useEffect flow. 
+        // Actually, calling it explicitly with the NEW user (via context update) is tricky without passing it.
+        // The loadDashboardData above now handles fetching fresh user if needed.
+        // So we can just call loadDashboardData directly? 
+        // No, onRefresh calls refreshUser which updates context.
+        // Let's just call loadDashboardData, it will fetch fresh user if local 'user' is stale? 
+        // No, 'user' in closure is stale. 
+        // So loadDashboardData will call refreshUser AGAIN. That's fine.
         await loadDashboardData();
         setRefreshing(false);
     };

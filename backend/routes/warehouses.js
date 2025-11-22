@@ -2,16 +2,15 @@ const express = require("express");
 const Warehouse = require("../models/Warehouse");
 const User = require("../models/User");
 const Product = require("../models/Product");
-const { authMiddleware, requireManager } = require("../middleware/roleMiddleware");
+const { authMiddleware, requireManager, requireWarehouseAccess } = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
-// All warehouse routes require authentication and manager role
+// All warehouse routes require authentication
 router.use(authMiddleware);
-router.use(requireManager);
 
-// Get all warehouses
-router.get("/", async (req, res) => {
+// Get all warehouses (Manager only)
+router.get("/", requireManager, async (req, res) => {
     try {
         const warehouses = await Warehouse.find()
             .populate("manager", "name email")
@@ -23,8 +22,8 @@ router.get("/", async (req, res) => {
     }
 });
 
-// Get single warehouse
-router.get("/:id", async (req, res) => {
+// Get single warehouse (Manager or Assigned Employee)
+router.get("/:id", requireWarehouseAccess("id"), async (req, res) => {
     try {
         const warehouse = await Warehouse.findById(req.params.id)
             .populate("manager", "name email");
@@ -39,8 +38,8 @@ router.get("/:id", async (req, res) => {
     }
 });
 
-// Create new warehouse
-router.post("/", async (req, res) => {
+// Create new warehouse (Manager only)
+router.post("/", requireManager, async (req, res) => {
     try {
         const { name, location, manager, capacity } = req.body;
 
@@ -75,8 +74,8 @@ router.post("/", async (req, res) => {
     }
 });
 
-// Update warehouse
-router.put("/:id", async (req, res) => {
+// Update warehouse (Manager only)
+router.put("/:id", requireManager, async (req, res) => {
     try {
         const { name, location, manager, capacity, isActive } = req.body;
 
@@ -108,8 +107,8 @@ router.put("/:id", async (req, res) => {
     }
 });
 
-// Delete warehouse
-router.delete("/:id", async (req, res) => {
+// Delete warehouse (Manager only)
+router.delete("/:id", requireManager, async (req, res) => {
     try {
         const warehouse = await Warehouse.findById(req.params.id);
         if (!warehouse) {
@@ -139,8 +138,8 @@ router.delete("/:id", async (req, res) => {
     }
 });
 
-// Get employees assigned to warehouse
-router.get("/:id/employees", async (req, res) => {
+// Get employees assigned to warehouse (Manager only)
+router.get("/:id/employees", requireManager, async (req, res) => {
     try {
         const employees = await User.find({
             warehouse: req.params.id,
@@ -156,8 +155,8 @@ router.get("/:id/employees", async (req, res) => {
     }
 });
 
-// Get warehouse inventory
-router.get("/:id/inventory", async (req, res) => {
+// Get warehouse inventory (Manager or Assigned Employee)
+router.get("/:id/inventory", requireWarehouseAccess("id"), async (req, res) => {
     try {
         const products = await Product.find({ warehouse: req.params.id })
             .sort({ name: 1 });

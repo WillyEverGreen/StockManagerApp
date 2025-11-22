@@ -1,8 +1,8 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { BASE_URL } from "../config";
 
-// Use Local IP for stability (Cloudflare Tunnel can expire)
-const API_URL = "http://192.168.137.1:5000";
+const API_URL = BASE_URL;
 
 const api = axios.create({
   baseURL: API_URL,

@@ -16,6 +16,12 @@ const moveHistorySchema = new mongoose.Schema({
       "LOGIN",
       "LOGOUT",
       "SETTINGS_CHANGE",
+      "EMPLOYEE_ASSIGNED",
+      "EMPLOYEE_UNASSIGNED",
+      "EMPLOYEE_DELETED",
+      "WAREHOUSE_CREATED",
+      "WAREHOUSE_UPDATED",
+      "WAREHOUSE_DELETED",
     ],
   },
   sku: {
