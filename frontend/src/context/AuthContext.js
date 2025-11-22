@@ -29,9 +29,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signIn = async (email, password) => {
+  const signIn = async (email, password, selectedRole) => {
     try {
-      const response = await api.login({ email, password });
+      const response = await api.login({ email, password, selectedRole });
       const { token, user } = response.data;
 
       await AsyncStorage.setItem("token", token);

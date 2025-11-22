@@ -60,15 +60,18 @@ router.post("/signup", async (req, res) => {
 // Login
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, selectedRole } = req.body;
 
     // Validate
     if (!email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    // Normalize email to lowercase
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Find user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail }).populate("warehouse", "name location");
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -77,6 +80,21 @@ router.post("/login", async (req, res) => {
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Validate role if selectedRole is provided
+    if (selectedRole) {
+      const roleMap = {
+        manager: "manager",
+        employee: "worker",
+      };
+
+      const expectedRole = roleMap[selectedRole];
+      if (expectedRole && user.role !== expectedRole) {
+        return res.status(403).json({
+          message: `You are not registered as a ${selectedRole}. Please select the correct role.`
+        });
+      }
     }
 
     // Generate token
@@ -102,6 +120,7 @@ router.post("/login", async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        warehouse: user.warehouse,
       },
     });
   } catch (error) {

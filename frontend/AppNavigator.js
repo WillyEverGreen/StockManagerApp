@@ -11,6 +11,10 @@ import SplashScreen from "./src/screens/SplashScreen";
 import LoginScreen from "./src/screens/LoginScreen";
 import SignupScreen from "./src/screens/SignupScreen";
 
+// Dashboard Screens
+import ManagerDashboard from "./src/screens/ManagerDashboard";
+import EmployeeDashboard from "./src/screens/EmployeeDashboard";
+
 // Main Screens
 import DashboardScreen from "./src/screens/DashboardScreen";
 import ProductsScreen from "./src/screens/ProductsScreen";
@@ -22,11 +26,15 @@ import StockOutScreen from "./src/screens/StockOutScreen";
 import TransactionsScreen from "./src/screens/TransactionsScreen";
 import HistoryScreen from "./src/screens/HistoryScreen";
 
+// Management Screens (Manager only)
+import WarehouseManagement from "./src/screens/WarehouseManagement";
+import EmployeeManagement from "./src/screens/EmployeeManagement";
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Bottom Tab Navigator
-const MainTabs = () => {
+// Bottom Tab Navigator for Managers
+const ManagerTabs = () => {
   const { signOut } = useContext(AuthContext);
 
   return (
@@ -46,25 +54,63 @@ const MainTabs = () => {
           fontSize: 12,
           fontWeight: "600",
         },
-        headerStyle: {
-          backgroundColor: colors.primary,
-        },
-        headerTintColor: colors.white,
-        headerTitleStyle: {
-          fontWeight: "bold",
-        },
+        headerShown: false,
       }}
     >
       <Tab.Screen
         name="Dashboard"
-        component={DashboardScreen}
+        component={ManagerDashboard}
         options={{
           tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>📊</Text>,
-          headerRight: () => (
-            <TouchableOpacity onPress={signOut} style={styles.logoutButton}>
-              <Text style={styles.logoutText}>Logout</Text>
-            </TouchableOpacity>
-          ),
+        }}
+      />
+      <Tab.Screen
+        name="Products"
+        component={ProductsScreen}
+        options={{
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>📦</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Transactions"
+        component={TransactionsScreen}
+        options={{
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>📋</Text>,
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
+
+// Bottom Tab Navigator for Employees
+const EmployeeTabs = () => {
+  const { signOut } = useContext(AuthContext);
+
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        tabBarActiveTintColor: colors.success,
+        tabBarInactiveTintColor: colors.gray500,
+        tabBarStyle: {
+          backgroundColor: colors.white,
+          borderTopWidth: 1,
+          borderTopColor: colors.gray200,
+          paddingBottom: 5,
+          paddingTop: 5,
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "600",
+        },
+        headerShown: false,
+      }}
+    >
+      <Tab.Screen
+        name="Dashboard"
+        component={EmployeeDashboard}
+        options={{
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🏠</Text>,
         }}
       />
       <Tab.Screen
@@ -99,55 +145,75 @@ const AuthStack = () => (
 );
 
 // Main Stack Navigator
-const MainStack = () => (
-  <Stack.Navigator
-    screenOptions={{
-      headerStyle: {
-        backgroundColor: colors.primary,
-      },
-      headerTintColor: colors.white,
-      headerTitleStyle: {
-        fontWeight: "bold",
-      },
-    }}
-  >
-    <Stack.Screen
-      name="MainTabs"
-      component={MainTabs}
-      options={{ headerShown: false }}
-    />
-    <Stack.Screen
-      name="ProductDetail"
-      component={ProductDetailScreen}
-      options={{ title: "Product Details" }}
-    />
-    <Stack.Screen
-      name="AddProduct"
-      component={AddProductScreen}
-      options={{ title: "Add Product" }}
-    />
-    <Stack.Screen
-      name="EditProduct"
-      component={EditProductScreen}
-      options={{ title: "Edit Product" }}
-    />
-    <Stack.Screen
-      name="StockIn"
-      component={StockInScreen}
-      options={{ title: "Stock In" }}
-    />
-    <Stack.Screen
-      name="StockOut"
-      component={StockOutScreen}
-      options={{ title: "Stock Out" }}
-    />
-    <Stack.Screen
-      name="History"
-      component={HistoryScreen}
-      options={{ title: "Audit History" }}
-    />
-  </Stack.Navigator>
-);
+const MainStack = () => {
+  const { user } = useContext(AuthContext);
+  const isManager = user?.role === "manager";
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: colors.primary,
+        },
+        headerTintColor: colors.white,
+        headerTitleStyle: {
+          fontWeight: "bold",
+        },
+      }}
+    >
+      <Stack.Screen
+        name="MainTabs"
+        component={isManager ? ManagerTabs : EmployeeTabs}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ProductDetail"
+        component={ProductDetailScreen}
+        options={{ title: "Product Details" }}
+      />
+      <Stack.Screen
+        name="AddProduct"
+        component={AddProductScreen}
+        options={{ title: "Add Product" }}
+      />
+      <Stack.Screen
+        name="EditProduct"
+        component={EditProductScreen}
+        options={{ title: "Edit Product" }}
+      />
+      <Stack.Screen
+        name="StockIn"
+        component={StockInScreen}
+        options={{ title: "Stock In" }}
+      />
+      <Stack.Screen
+        name="StockOut"
+        component={StockOutScreen}
+        options={{ title: "Stock Out" }}
+      />
+      <Stack.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{ title: "Audit History" }}
+      />
+      {/* Manager-only screens */}
+      {isManager && (
+        <>
+          <Stack.Screen
+            name="WarehouseManagement"
+            component={WarehouseManagement}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="EmployeeManagement"
+            component={EmployeeManagement}
+            options={{ headerShown: false }}
+          />
+        </>
+      )}
+    </Stack.Navigator>
+  );
+};
 
 // Root Navigator
 const AppNavigator = () => {

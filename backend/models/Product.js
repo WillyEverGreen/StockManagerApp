@@ -30,6 +30,11 @@ const productSchema = new mongoose.Schema({
       cost: Number,
     },
   ],
+  warehouse: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Warehouse",
+    default: null,
+  },
   usageHistory: {
     type: [Number],
     default: [],

@@ -8,6 +8,8 @@ const productRoutes = require("./routes/products");
 const stockRoutes = require("./routes/stock");
 const transactionRoutes = require("./routes/transactions");
 const historyRoutes = require("./routes/history");
+const warehouseRoutes = require("./routes/warehouses");
+const employeeRoutes = require("./routes/employees");
 
 const app = express();
 
@@ -27,6 +29,8 @@ app.use("/products", productRoutes);
 app.use("/stock", stockRoutes);
 app.use("/transactions", transactionRoutes);
 app.use("/history", historyRoutes);
+app.use("/warehouses", warehouseRoutes);
+app.use("/employees", employeeRoutes);
 
 // Health check
 app.get("/", (req, res) => {
