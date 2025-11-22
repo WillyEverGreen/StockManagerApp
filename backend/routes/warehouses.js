@@ -10,10 +10,11 @@ const router = express.Router();
 // All warehouse routes require authentication
 router.use(authMiddleware);
 
-// Get all warehouses (Manager only)
+// Get all warehouses (Manager only - filtered by manager)
 router.get("/", requireManager, async (req, res) => {
     try {
-        const warehouses = await Warehouse.find()
+        // Only return warehouses belonging to this manager
+        const warehouses = await Warehouse.find({ manager: req.user._id })
             .populate("manager", "name email")
             .sort({ createdAt: -1 });
 

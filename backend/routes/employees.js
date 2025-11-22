@@ -83,10 +83,16 @@ router.post("/assign", async (req, res) => {
             return res.status(404).json({ message: "Employee not found" });
         }
 
-        // Verify warehouse exists
-        const warehouse = await Warehouse.findById(warehouseId);
+        // Verify warehouse exists and belongs to this manager
+        const warehouse = await Warehouse.findOne({
+            _id: warehouseId,
+            manager: req.user._id
+        });
+
         if (!warehouse) {
-            return res.status(404).json({ message: "Warehouse not found" });
+            return res.status(404).json({
+                message: "Warehouse not found or you don't have permission to assign to this warehouse"
+            });
         }
 
         // Update employee assignment
