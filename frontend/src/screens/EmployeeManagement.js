@@ -8,7 +8,6 @@ import {
     Alert,
     RefreshControl,
     Modal,
-    Picker,
 } from "react-native";
 import { colors } from "../styles/globalStyles";
 import axios from "axios";
@@ -108,6 +107,11 @@ const EmployeeManagement = ({ navigation }) => {
 
     const unassignedEmployees = employees.filter((emp) => !emp.warehouse);
     const assignedEmployees = employees.filter((emp) => emp.warehouse);
+
+    const getSelectedWarehouseName = () => {
+        const warehouse = warehouses.find((w) => w._id === selectedWarehouse);
+        return warehouse ? warehouse.name : "Select a warehouse...";
+    };
 
     return (
         <View style={styles.container}>
@@ -222,22 +226,38 @@ const EmployeeManagement = ({ navigation }) => {
                         )}
 
                         <Text style={styles.label}>Select Warehouse</Text>
-                        <View style={styles.pickerContainer}>
-                            <Picker
-                                selectedValue={selectedWarehouse}
-                                onValueChange={(value) => setSelectedWarehouse(value)}
-                                style={styles.picker}
-                            >
-                                <Picker.Item label="Select a warehouse..." value="" />
-                                {warehouses.map((warehouse) => (
-                                    <Picker.Item
-                                        key={warehouse._id}
-                                        label={warehouse.name}
-                                        value={warehouse._id}
-                                    />
-                                ))}
-                            </Picker>
+
+                        {/* Custom Dropdown */}
+                        <View style={styles.dropdownContainer}>
+                            <Text style={styles.dropdownPlaceholder}>
+                                {getSelectedWarehouseName()}
+                            </Text>
                         </View>
+
+                        <ScrollView style={styles.warehouseList}>
+                            {warehouses.map((warehouse) => (
+                                <TouchableOpacity
+                                    key={warehouse._id}
+                                    style={[
+                                        styles.warehouseOption,
+                                        selectedWarehouse === warehouse._id && styles.warehouseOptionSelected,
+                                    ]}
+                                    onPress={() => setSelectedWarehouse(warehouse._id)}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.warehouseOptionText,
+                                            selectedWarehouse === warehouse._id && styles.warehouseOptionTextSelected,
+                                        ]}
+                                    >
+                                        {warehouse.name}
+                                    </Text>
+                                    {selectedWarehouse === warehouse._id && (
+                                        <Text style={styles.checkmark}>✓</Text>
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
 
                         <View style={styles.modalActions}>
                             <TouchableOpacity
@@ -422,6 +442,7 @@ const styles = StyleSheet.create({
         padding: 24,
         width: "85%",
         maxWidth: 400,
+        maxHeight: "80%",
     },
     modalTitle: {
         fontSize: 22,
@@ -452,19 +473,51 @@ const styles = StyleSheet.create({
         color: colors.gray700,
         marginBottom: 8,
     },
-    pickerContainer: {
+    dropdownContainer: {
         backgroundColor: colors.gray50,
         borderWidth: 1.5,
         borderColor: colors.gray200,
         borderRadius: 12,
-        overflow: "hidden",
+        padding: 14,
+        marginBottom: 12,
     },
-    picker: {
-        height: 50,
+    dropdownPlaceholder: {
+        fontSize: 16,
+        color: colors.gray700,
+    },
+    warehouseList: {
+        maxHeight: 200,
+        marginBottom: 16,
+    },
+    warehouseOption: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 14,
+        borderRadius: 8,
+        marginBottom: 8,
+        backgroundColor: colors.gray50,
+    },
+    warehouseOptionSelected: {
+        backgroundColor: colors.primary,
+    },
+    warehouseOptionText: {
+        fontSize: 15,
+        color: colors.gray900,
+        fontWeight: "500",
+    },
+    warehouseOptionTextSelected: {
+        color: colors.white,
+        fontWeight: "600",
+    },
+    checkmark: {
+        fontSize: 18,
+        color: colors.white,
+        fontWeight: "bold",
     },
     modalActions: {
         flexDirection: "row",
-        marginTop: 24,
+        marginTop: 8,
         gap: 12,
     },
     modalButton: {
