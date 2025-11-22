@@ -10,8 +10,11 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  Button,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { colors, globalStyles } from "../styles/globalStyles";
 import * as api from "../services/api";
 
@@ -21,6 +24,8 @@ const StockInScreen = ({ navigation }) => {
   const [quantity, setQuantity] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
 
   useEffect(() => {
     loadProducts();
@@ -35,6 +40,36 @@ const StockInScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBarCodeScanned = ({ type, data }) => {
+    setScanning(false);
+    // Find product by SKU or ID
+    const product = products.find((p) => p.sku === data || p._id === data);
+
+    if (product) {
+      setSelectedProductId(product._id);
+      Alert.alert("Product Found", `${product.name} (${product.sku})`);
+    } else {
+      Alert.alert("Not Found", `No product found with SKU/ID: ${data}`);
+    }
+  };
+
+  const startScan = async () => {
+    if (!permission) {
+      await requestPermission();
+    }
+    if (!permission?.granted) {
+      const { status } = await requestPermission();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission denied",
+          "Camera permission is required to scan QR codes"
+        );
+        return;
+      }
+    }
+    setScanning(true);
   };
 
   const handleSubmit = async () => {
@@ -86,6 +121,28 @@ const StockInScreen = ({ navigation }) => {
     );
   }
 
+  if (scanning) {
+    return (
+      <View style={styles.cameraContainer}>
+        <CameraView
+          style={StyleSheet.absoluteFillObject}
+          onBarcodeScanned={handleBarCodeScanned}
+          barcodeScannerSettings={{
+            barcodeTypes: ["qr", "ean13", "ean8", "upc_e", "code128"],
+          }}
+        />
+        <View style={styles.overlay}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => setScanning(false)}
+          >
+            <Text style={styles.cancelButtonText}>Cancel Scan</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={globalStyles.container}
@@ -96,7 +153,12 @@ const StockInScreen = ({ navigation }) => {
         keyboardShouldPersistTaps="handled"
       >
         <View style={globalStyles.card}>
-          <Text style={globalStyles.title}>📥 Stock In</Text>
+          <View style={globalStyles.spaceBetween}>
+            <Text style={globalStyles.title}>📥 Stock In</Text>
+            <TouchableOpacity onPress={startScan} style={styles.scanButton}>
+              <Text style={styles.scanButtonText}>📷 Scan QR</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={globalStyles.textMuted}>
             Add incoming stock to inventory
           </Text>
@@ -208,6 +270,38 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  scanButton: {
+    backgroundColor: colors.secondary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  scanButtonText: {
+    color: colors.white,
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  cameraContainer: {
+    flex: 1,
+    backgroundColor: "black",
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "transparent",
+    justifyContent: "flex-end",
+    padding: 20,
+  },
+  cancelButton: {
+    backgroundColor: colors.danger,
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    color: colors.white,
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
 

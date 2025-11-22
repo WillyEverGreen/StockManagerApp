@@ -3,6 +3,7 @@
     "name": "StockManager",
     "slug": "stockmanager-app",
     "version": "1.0.0",
+    "entryPoint": "./index.js",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
@@ -28,6 +29,9 @@
     "android": {
       "package": "com.stockmanager.app",
       "permissions": ["CAMERA"]
+    },
+    "updates": {
+      "enabled": false
     }
   }
 }

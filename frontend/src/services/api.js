@@ -1,13 +1,15 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "http://192.168.1.2:5000"; // Updated to local IP for physical device testing
+// Use Local IP for stability (Cloudflare Tunnel can expire)
+const API_URL = "http://192.168.1.2:5000";
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 10000, // 10 seconds timeout
 });
 
 // Add token to requests
@@ -45,5 +47,8 @@ export const getTransactions = (limit = 50) =>
   api.get(`/transactions?limit=${limit}`);
 export const getProductTransactions = (productId) =>
   api.get(`/transactions/product/${productId}`);
+
+// History APIs
+export const getHistory = () => api.get("/history");
 
 export default api;

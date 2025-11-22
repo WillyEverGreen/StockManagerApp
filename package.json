@@ -1,0 +1,17 @@
+{
+  "name": "stockmanager-root",
+  "version": "1.0.0",
+  "description": "Root project for StockManager App (Backend + Frontend)",
+  "scripts": {
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd backend && npm run dev",
+    "client": "cd frontend && npx expo start --clear",
+    "seed": "cd backend && npm run seed"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "author": "WillyEverGreen",
+  "license": "ISC"
+}

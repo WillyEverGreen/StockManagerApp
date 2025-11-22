@@ -12,7 +12,7 @@ import {
   Modal,
   Button,
 } from "react-native";
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { colors, globalStyles } from "../styles/globalStyles";
 import * as api from "../services/api";
 
@@ -83,7 +83,7 @@ const AddProductScreen = ({ navigation }) => {
           />
 
           <Text style={globalStyles.label}>SKU *</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
             <TextInput
               style={[globalStyles.input, { flex: 1, marginBottom: 0 }]}
               placeholder="Enter SKU (e.g., PROD001)"
@@ -97,8 +97,8 @@ const AddProductScreen = ({ navigation }) => {
                 padding: 10,
                 backgroundColor: colors.gray100,
                 borderRadius: 8,
-                justifyContent: 'center',
-                alignItems: 'center',
+                justifyContent: "center",
+                alignItems: "center",
                 height: 50,
               }}
               onPress={() => {

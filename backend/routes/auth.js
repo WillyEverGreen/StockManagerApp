@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const MoveHistory = require("../models/MoveHistory");
 
 const router = express.Router();
 
@@ -34,9 +35,13 @@ router.post("/signup", async (req, res) => {
     await user.save();
 
     // Generate token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "30d",
-    });
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "30d",
+      }
+    );
 
     res.status(201).json({
       token,
@@ -44,6 +49,7 @@ router.post("/signup", async (req, res) => {
         id: user._id,
         email: user.email,
         name: user.name,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -74,8 +80,19 @@ router.post("/login", async (req, res) => {
     }
 
     // Generate token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "30d",
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "30d",
+      }
+    );
+
+    // Log history
+    await MoveHistory.create({
+      user: user._id,
+      action: "LOGIN",
+      details: "User logged in",
     });
 
     res.json({
@@ -84,6 +101,7 @@ router.post("/login", async (req, res) => {
         id: user._id,
         email: user.email,
         name: user.name,
+        role: user.role,
       },
     });
   } catch (error) {

@@ -20,6 +20,7 @@ import EditProductScreen from "./src/screens/EditProductScreen";
 import StockInScreen from "./src/screens/StockInScreen";
 import StockOutScreen from "./src/screens/StockOutScreen";
 import TransactionsScreen from "./src/screens/TransactionsScreen";
+import HistoryScreen from "./src/screens/HistoryScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -139,6 +140,11 @@ const MainStack = () => (
       name="StockOut"
       component={StockOutScreen}
       options={{ title: "Stock Out" }}
+    />
+    <Stack.Screen
+      name="History"
+      component={HistoryScreen}
+      options={{ title: "Audit History" }}
     />
   </Stack.Navigator>
 );

@@ -23,6 +23,13 @@ const productSchema = new mongoose.Schema({
     required: true,
     default: 10,
   },
+  batches: [
+    {
+      quantity: Number,
+      dateIn: { type: Date, default: Date.now },
+      cost: Number,
+    },
+  ],
   usageHistory: {
     type: [Number],
     default: [],

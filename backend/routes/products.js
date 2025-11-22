@@ -1,5 +1,6 @@
 const express = require("express");
 const Product = require("../models/Product");
+const MoveHistory = require("../models/MoveHistory");
 const authMiddleware = require("../middleware/auth");
 
 const router = express.Router();
@@ -61,9 +62,19 @@ router.post("/", async (req, res) => {
       sku: sku.toUpperCase(),
       stock: stock || 0,
       minStock: minStock || 10,
+      batches: stock > 0 ? [{ quantity: stock, dateIn: new Date() }] : [],
     });
 
     await product.save();
+
+    // Log history
+    await MoveHistory.create({
+      user: req.user.userId,
+      action: "PRODUCT_CREATE",
+      sku: product.sku,
+      details: `Created product ${name}`,
+    });
+
     res.status(201).json(product);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -94,6 +105,15 @@ router.put("/:id", async (req, res) => {
     product.minStock = minStock !== undefined ? minStock : product.minStock;
 
     await product.save();
+
+    // Log history
+    await MoveHistory.create({
+      user: req.user.userId,
+      action: "PRODUCT_UPDATE",
+      sku: product.sku,
+      details: `Updated product details`,
+    });
+
     res.json(product);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });

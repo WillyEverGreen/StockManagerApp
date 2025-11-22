@@ -206,6 +206,41 @@ Then:
 - Press `i` for iOS
 - Scan QR code with Expo Go app
 
+## 🚀 Quick Start for Developers
+
+1.  **Clone the repository**
+
+    ```bash
+    git clone <repository-url>
+    cd StockManager
+    ```
+
+2.  **Install Dependencies (One Command)**
+
+    ```bash
+    npm run install-all
+    ```
+
+    _This installs dependencies for root, backend, and frontend automatically._
+
+3.  **Setup Environment**
+
+    - Go to `backend/` and copy `.env.example` to `.env`
+    - Update MongoDB URI if needed.
+
+4.  **Run the App**
+
+    ```bash
+    npm start
+    ```
+
+    _This starts both the Backend Server and Expo Frontend concurrently._
+
+5.  **Scan & Go**
+    - Scan the QR code in the terminal with Expo Go.
+
+---
+
 ## 📱 Usage Guide
 
 ### First Time Setup

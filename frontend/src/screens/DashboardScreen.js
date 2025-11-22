@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import {
   View,
   Text,
@@ -9,17 +9,20 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import { AuthContext } from "../context/AuthContext";
 import { colors, globalStyles } from "../styles/globalStyles";
 import * as api from "../services/api";
 import { isLowStock } from "../utils/prediction";
 
 const DashboardScreen = ({ navigation }) => {
+  const { user } = useContext(AuthContext);
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalStock: 0,
     lowStockCount: 0,
   });
   const [recentTransactions, setRecentTransactions] = useState([]);
+  const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -41,8 +44,26 @@ const DashboardScreen = ({ navigation }) => {
 
       setStats({ totalProducts, totalStock, lowStockCount });
       setRecentTransactions(transactionsRes.data);
+
+      // Calculate predictions (Manager only)
+      if (user?.role === "manager") {
+        const predicted = products
+          .filter((p) => p.usageHistory && p.usageHistory.length > 0)
+          .map((p) => {
+            const avgUsage =
+              p.usageHistory.reduce((a, b) => a + b, 0) / p.usageHistory.length;
+            const daysLeft = avgUsage > 0 ? p.stock / avgUsage : 999;
+            return { ...p, daysLeft };
+          })
+          .filter((p) => p.daysLeft < 7) // Run out in 7 days
+          .sort((a, b) => a.daysLeft - b.daysLeft);
+        setPredictions(predicted);
+      }
     } catch (error) {
-      console.error("Dashboard load error:", error);
+      console.log(
+        "Dashboard request failed:",
+        error?.response?.data || error.message
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -52,7 +73,7 @@ const DashboardScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       loadDashboardData();
-    }, [])
+    }, [user])
   );
 
   const onRefresh = () => {
@@ -77,7 +98,9 @@ const DashboardScreen = ({ navigation }) => {
     >
       <View style={globalStyles.scrollContent}>
         <Text style={globalStyles.title}>Dashboard</Text>
-        <Text style={globalStyles.textMuted}>Overview of your inventory</Text>
+        <Text style={globalStyles.textMuted}>
+          Welcome, {user?.name} ({user?.role})
+        </Text>
 
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
@@ -102,8 +125,27 @@ const DashboardScreen = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Manager Predictions */}
+        {user?.role === "manager" && predictions.length > 0 && (
+          <View>
+            <Text style={[globalStyles.subtitle, { marginTop: 16 }]}>
+              ⚠️ Stock Predictions
+            </Text>
+            {predictions.map((p) => (
+              <View
+                key={p._id}
+                style={[globalStyles.card, styles.predictionCard]}
+              >
+                <Text style={styles.predictionText}>
+                  {p.name} will run out in ~{Math.ceil(p.daysLeft)} transactions
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Quick Actions */}
-        <Text style={[globalStyles.subtitle, { marginTop: 8 }]}>
+        <Text style={[globalStyles.subtitle, { marginTop: 16 }]}>
           Quick Actions
         </Text>
         <View style={styles.actionsContainer}>
@@ -130,10 +172,18 @@ const DashboardScreen = ({ navigation }) => {
             <Text style={styles.actionIcon}>📤</Text>
             <Text style={styles.actionText}>Stock Out</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[globalStyles.card, styles.actionCard]}
+            onPress={() => navigation.navigate("History")}
+          >
+            <Text style={styles.actionIcon}>📜</Text>
+            <Text style={styles.actionText}>History</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Recent Transactions */}
-        <Text style={[globalStyles.subtitle, { marginTop: 8 }]}>
+        <Text style={[globalStyles.subtitle, { marginTop: 16 }]}>
           Recent Transactions
         </Text>
         {recentTransactions.length === 0 ? (
@@ -256,6 +306,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: colors.gray900,
+  },
+  predictionCard: {
+    backgroundColor: colors.warning + "10",
+    borderLeftWidth: 4,
+    borderLeftColor: colors.warning,
+    marginBottom: 8,
+  },
+  predictionText: {
+    color: colors.gray900,
+    fontWeight: "600",
   },
 });
 

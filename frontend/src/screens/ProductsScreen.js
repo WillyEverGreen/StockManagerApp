@@ -12,7 +12,7 @@ import {
   Modal,
   Button,
 } from "react-native";
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { useFocusEffect } from "@react-navigation/native";
 import { colors, globalStyles } from "../styles/globalStyles";
 import * as api from "../services/api";
