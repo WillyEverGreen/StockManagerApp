@@ -9,13 +9,18 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Modal,
+  Button,
 } from "react-native";
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect } from "@react-navigation/native";
 import { colors, globalStyles } from "../styles/globalStyles";
 import * as api from "../services/api";
 import { isLowStock, calculateStockPrediction } from "../utils/prediction";
 
 const ProductsScreen = ({ navigation }) => {
+  const [permission, requestPermission] = useCameraPermissions();
+  const [isScanning, setIsScanning] = useState(false);
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +64,13 @@ const ProductsScreen = ({ navigation }) => {
       );
       setFilteredProducts(filtered);
     }
+  };
+
+  const handleBarcodeScanned = ({ data }) => {
+    setIsScanning(false);
+    setSearchQuery(data);
+    handleSearch(data);
+    Alert.alert("Scanned", `Found code: ${data}`);
   };
 
   const renderProduct = ({ item }) => {
@@ -128,6 +140,15 @@ const ProductsScreen = ({ navigation }) => {
           onChangeText={handleSearch}
         />
         <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => {
+            if (!permission?.granted) requestPermission();
+            setIsScanning(true);
+          }}
+        >
+          <Text style={{ fontSize: 20 }}>📷</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate("AddProduct")}
         >
@@ -149,6 +170,27 @@ const ProductsScreen = ({ navigation }) => {
           </View>
         }
       />
+
+      <Modal visible={isScanning} animationType="slide">
+        <View style={{ flex: 1 }}>
+          <CameraView
+            style={{ flex: 1 }}
+            onBarcodeScanned={handleBarcodeScanned}
+            barcodeScannerSettings={{
+              barcodeTypes: [
+                "qr",
+                "ean13",
+                "ean8",
+                "upc_a",
+                "upc_e",
+                "code128",
+                "code39",
+              ],
+            }}
+          />
+          <Button title="Cancel Scan" onPress={() => setIsScanning(false)} />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -168,6 +210,14 @@ const styles = StyleSheet.create({
     padding: 12,
     marginRight: 8,
     fontSize: 14,
+  },
+  iconButton: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 12,
+    marginRight: 8,
+    backgroundColor: colors.gray100,
+    borderRadius: 8,
   },
   addButton: {
     backgroundColor: colors.primary,

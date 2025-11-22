@@ -9,16 +9,27 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  Button,
 } from "react-native";
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { colors, globalStyles } from "../styles/globalStyles";
 import * as api from "../services/api";
 
 const AddProductScreen = ({ navigation }) => {
+  const [permission, requestPermission] = useCameraPermissions();
+  const [isScanning, setIsScanning] = useState(false);
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
   const [stock, setStock] = useState("");
   const [minStock, setMinStock] = useState("10");
   const [loading, setLoading] = useState(false);
+
+  const handleBarcodeScanned = ({ data }) => {
+    setIsScanning(false);
+    setSku(data.toUpperCase());
+    Alert.alert("Scanned", `SKU set to: ${data}`);
+  };
 
   const handleSubmit = async () => {
     if (!name || !sku) {
@@ -72,13 +83,33 @@ const AddProductScreen = ({ navigation }) => {
           />
 
           <Text style={globalStyles.label}>SKU *</Text>
-          <TextInput
-            style={globalStyles.input}
-            placeholder="Enter SKU (e.g., PROD001)"
-            value={sku}
-            onChangeText={(text) => setSku(text.toUpperCase())}
-            autoCapitalize="characters"
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TextInput
+              style={[globalStyles.input, { flex: 1, marginBottom: 0 }]}
+              placeholder="Enter SKU (e.g., PROD001)"
+              value={sku}
+              onChangeText={(text) => setSku(text.toUpperCase())}
+              autoCapitalize="characters"
+            />
+            <TouchableOpacity
+              style={{
+                marginLeft: 10,
+                padding: 10,
+                backgroundColor: colors.gray100,
+                borderRadius: 8,
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: 50,
+              }}
+              onPress={() => {
+                if (!permission?.granted) requestPermission();
+                setIsScanning(true);
+              }}
+            >
+              <Text style={{ fontSize: 20 }}>📷</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ height: 16 }} />
 
           <Text style={globalStyles.label}>Initial Stock</Text>
           <TextInput
@@ -118,6 +149,27 @@ const AddProductScreen = ({ navigation }) => {
           <Text style={globalStyles.buttonSecondaryText}>Cancel</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal visible={isScanning} animationType="slide">
+        <View style={{ flex: 1 }}>
+          <CameraView
+            style={{ flex: 1 }}
+            onBarcodeScanned={handleBarcodeScanned}
+            barcodeScannerSettings={{
+              barcodeTypes: [
+                "qr",
+                "ean13",
+                "ean8",
+                "upc_a",
+                "upc_e",
+                "code128",
+                "code39",
+              ],
+            }}
+          />
+          <Button title="Cancel Scan" onPress={() => setIsScanning(false)} />
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };

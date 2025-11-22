@@ -10,12 +10,24 @@
       "backgroundColor": "#2563eb"
     },
     "assetBundlePatterns": ["**/*"],
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow StockManager to access your camera to scan barcodes."
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.stockmanager.app"
+      "bundleIdentifier": "com.stockmanager.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow StockManager to access your camera to scan barcodes."
+      }
     },
     "android": {
-      "package": "com.stockmanager.app"
+      "package": "com.stockmanager.app",
+      "permissions": ["CAMERA"]
     }
   }
 }
