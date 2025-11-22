@@ -2,6 +2,7 @@ const express = require("express");
 const Warehouse = require("../models/Warehouse");
 const User = require("../models/User");
 const Product = require("../models/Product");
+const WarehouseInventory = require("../models/WarehouseInventory");
 const { authMiddleware, requireManager, requireWarehouseAccess } = require("../middleware/roleMiddleware");
 
 const router = express.Router();
@@ -124,10 +125,10 @@ router.delete("/:id", requireManager, async (req, res) => {
         }
 
         // Check if warehouse has products
-        const products = await Product.countDocuments({ warehouse: req.params.id });
-        if (products > 0) {
+        const inventoryCount = await WarehouseInventory.countDocuments({ warehouse: req.params.id });
+        if (inventoryCount > 0) {
             return res.status(400).json({
-                message: `Cannot delete warehouse. ${products} product(s) are still stored in it.`
+                message: `Cannot delete warehouse. ${inventoryCount} product(s) are still stored in it.`
             });
         }
 
@@ -158,15 +159,16 @@ router.get("/:id/employees", requireManager, async (req, res) => {
 // Get warehouse inventory (Manager or Assigned Employee)
 router.get("/:id/inventory", requireWarehouseAccess("id"), async (req, res) => {
     try {
-        const products = await Product.find({ warehouse: req.params.id })
-            .sort({ name: 1 });
+        const inventoryItems = await WarehouseInventory.find({ warehouse: req.params.id })
+            .populate("product", "name sku category minStock")
+            .sort({ "product.name": 1 });
 
-        const totalItems = products.length;
-        const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
-        const lowStockItems = products.filter(p => p.stock <= p.minStock).length;
+        const totalItems = inventoryItems.length;
+        const totalStock = inventoryItems.reduce((sum, item) => sum + item.stock, 0);
+        const lowStockItems = inventoryItems.filter(item => item.stock <= item.minStock).length;
 
         res.json({
-            products,
+            products: inventoryItems,
             stats: {
                 totalItems,
                 totalStock,

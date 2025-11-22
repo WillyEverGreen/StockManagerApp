@@ -46,10 +46,14 @@ router.get("/:id", async (req, res) => {
 // Create product
 router.post("/", async (req, res) => {
   try {
-    const { name, sku, stock, minStock } = req.body;
+    const { name, sku, stock, minStock, warehouse } = req.body;
 
     if (!name || !sku) {
       return res.status(400).json({ message: "Name and SKU are required" });
+    }
+
+    if (!warehouse) {
+      return res.status(400).json({ message: "Warehouse assignment is required" });
     }
 
     const existingProduct = await Product.findOne({ sku: sku.toUpperCase() });
@@ -62,6 +66,7 @@ router.post("/", async (req, res) => {
       sku: sku.toUpperCase(),
       stock: stock || 0,
       minStock: minStock || 10,
+      warehouse: warehouse,
       batches: stock > 0 ? [{ quantity: stock, dateIn: new Date() }] : [],
     });
 

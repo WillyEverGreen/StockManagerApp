@@ -1,5 +1,6 @@
 const express = require("express");
 const Product = require("../models/Product");
+const WarehouseInventory = require("../models/WarehouseInventory");
 const Transaction = require("../models/Transaction");
 const MoveHistory = require("../models/MoveHistory");
 const authMiddleware = require("../middleware/auth");
@@ -9,52 +10,71 @@ const router = express.Router();
 // All routes are protected
 router.use(authMiddleware);
 
-// Stock In (Receipt)
+// Stock In (Receipt) - Now requires warehouseId
 router.post("/in", async (req, res) => {
   try {
-    const { productId, quantity } = req.body;
+    const { productId, warehouseId, quantity } = req.body;
 
-    if (!productId || !quantity || quantity <= 0) {
-      return res.status(400).json({ message: "Invalid data" });
+    if (!productId || !warehouseId || !quantity || quantity <= 0) {
+      return res.status(400).json({ message: "Product ID, Warehouse ID, and valid quantity are required" });
     }
 
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+    // Find or create warehouse inventory entry
+    let inventory = await WarehouseInventory.findOne({
+      product: productId,
+      warehouse: warehouseId,
+    }).populate("product", "name sku");
+
+    if (!inventory) {
+      // Product doesn't exist in this warehouse yet, create new inventory entry
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      inventory = new WarehouseInventory({
+        product: productId,
+        warehouse: warehouseId,
+        stock: 0,
+        minStock: product.minStock || 10,
+        batches: [],
+        usageHistory: [],
+      });
     }
 
     // Update stock
-    product.stock += parseInt(quantity);
+    inventory.stock += parseInt(quantity);
 
     // Add batch (FIFO)
-    product.batches.push({
+    inventory.batches.push({
       quantity: parseInt(quantity),
       dateIn: new Date(),
     });
 
-    await product.save();
+    await inventory.save();
+    await inventory.populate("product", "name sku");
 
     // Create transaction
     const transaction = new Transaction({
       productId,
       type: "in",
       quantity: parseInt(quantity),
-      productName: product.name,
-      productSku: product.sku,
+      productName: inventory.product.name,
+      productSku: inventory.product.sku,
     });
     await transaction.save();
 
     // Log history
     await MoveHistory.create({
-      user: req.user.userId, // Assuming auth middleware adds user info
+      user: req.user.userId,
       action: "STOCK_IN",
-      sku: product.sku,
-      details: `Added ${quantity} units`,
+      sku: inventory.product.sku,
+      details: `Added ${quantity} units to warehouse`,
     });
 
     res.json({
       message: "Stock added successfully",
-      product,
+      inventory,
       transaction,
     });
   } catch (error) {
@@ -62,36 +82,40 @@ router.post("/in", async (req, res) => {
   }
 });
 
-// Stock Out (Delivery)
+// Stock Out (Delivery) - Now requires warehouseId
 router.post("/out", async (req, res) => {
   try {
-    const { productId, quantity } = req.body;
+    const { productId, warehouseId, quantity } = req.body;
 
-    if (!productId || !quantity || quantity <= 0) {
-      return res.status(400).json({ message: "Invalid data" });
+    if (!productId || !warehouseId || !quantity || quantity <= 0) {
+      return res.status(400).json({ message: "Product ID, Warehouse ID, and valid quantity are required" });
     }
 
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+    const inventory = await WarehouseInventory.findOne({
+      product: productId,
+      warehouse: warehouseId,
+    }).populate("product", "name sku");
+
+    if (!inventory) {
+      return res.status(404).json({ message: "Product not found in this warehouse" });
     }
 
     // Check if enough stock
-    if (product.stock < quantity) {
+    if (inventory.stock < quantity) {
       return res.status(400).json({
         message: "Insufficient stock",
-        available: product.stock,
+        available: inventory.stock,
       });
     }
 
     // FIFO Logic: Deduct from oldest batches
     let remainingQty = parseInt(quantity);
 
-    // Sort batches by date (oldest first) just in case
-    product.batches.sort((a, b) => new Date(a.dateIn) - new Date(b.dateIn));
+    // Sort batches by date (oldest first)
+    inventory.batches.sort((a, b) => new Date(a.dateIn) - new Date(b.dateIn));
 
     const newBatches = [];
-    for (const batch of product.batches) {
+    for (const batch of inventory.batches) {
       if (remainingQty <= 0) {
         newBatches.push(batch);
         continue;
@@ -106,26 +130,26 @@ router.post("/out", async (req, res) => {
         // Batch fully used, don't push to newBatches
       }
     }
-    product.batches = newBatches;
+    inventory.batches = newBatches;
 
     // Update total stock
-    product.stock -= parseInt(quantity);
+    inventory.stock -= parseInt(quantity);
 
     // Update usage history (keep last 10 for prediction)
-    product.usageHistory.push(parseInt(quantity));
-    if (product.usageHistory.length > 10) {
-      product.usageHistory = product.usageHistory.slice(-10);
+    inventory.usageHistory.push(parseInt(quantity));
+    if (inventory.usageHistory.length > 10) {
+      inventory.usageHistory = inventory.usageHistory.slice(-10);
     }
 
-    await product.save();
+    await inventory.save();
 
     // Create transaction
     const transaction = new Transaction({
       productId,
       type: "out",
       quantity: parseInt(quantity),
-      productName: product.name,
-      productSku: product.sku,
+      productName: inventory.product.name,
+      productSku: inventory.product.sku,
     });
     await transaction.save();
 
@@ -133,13 +157,13 @@ router.post("/out", async (req, res) => {
     await MoveHistory.create({
       user: req.user.userId,
       action: "STOCK_OUT",
-      sku: product.sku,
-      details: `Removed ${quantity} units (FIFO applied)`,
+      sku: inventory.product.sku,
+      details: `Removed ${quantity} units from warehouse (FIFO applied)`,
     });
 
     res.json({
       message: "Stock removed successfully",
-      product,
+      inventory,
       transaction,
     });
   } catch (error) {
